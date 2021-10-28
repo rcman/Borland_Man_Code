@@ -1,8 +1,27 @@
-//Code By Franco Gaetan
-//E-Mail franco@inforamp.net
-//http://www.inforamp.net/~franco
-//Scrolling Going Down
-
+// Defender style game like Datastorm
+// Date Start: April 23, 1995
+// Revision: May 7, 1995
+// Single Bottom Screen Scroll
+// Task List    Init Screen
+//              Load Objects
+//              Init Enemies
+//              Calculate Coords
+//              Move Enemies
+//              Scroll Screen
+//**********************************************************
+//    PUT (x, SIN(ya * (3.14159267# / 180)) * 60 + 100), Box%, XOR
+//        LOCATE 1, 1: PRINT SIN(ya); ya; yac
+//        yao = ya
+//        xo = x
+//        PUT (x, SIN(ya * (3.14159267# / 180)) * 60 + 100), Box%, XOR
+//        ya = ya + yac
+//        IF ya > 360 THEN ya = 0: ' ya = 360
+//        'IF ya < 0 THEN yac = 1: ya = 0
+//        x = x + .3
+//        FOR t = 1 TO 10: NEXT t
+//        PUT (xo, SIN(yao * (3.14159267# / 180)) * 60 + 100), Box%, XOR
+//        GOTO mainloop
+//
 
 #include <dos.h>
 #include <stdio.h>
@@ -12,187 +31,117 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <mem.h>
-#include "draw.h"
+// #include <complex.h>
 
-#define TOTALSHAPE 110
-
-
-
+//#include <conio.h>
+//#include <graphics.h>
+#pragma inline
+void Init_Mode(void);
+void Close_Mode(void);
 void CutImage(int saveareax, int savesreay, int spritenum);
-void PutImage(int);
+void PutImage(int spx,int spy);
 void RestoreBack(int spx,int spy, int spritenum );
 void getch(void);
 void initarray(void);
-void copypageup(void);
-void copypagedn(void);
+void copypage(char *source, char *destin);
 int kbhit(void);
-void initscreen(void);
-void checkletter(int line);
-int fileread(void);
-void CheckImage(int line);
-void SyncToVerticalRetrace( void );
+int getkey(void);
 
-
-void checkit(void);
 //Global
 
-
-static char ship1[16][16] = {
-
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x17, 0x17,0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x17, 0x17, 0x17, 0x17,0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x17, 0x17, 0x17, 0x17, 0x17,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x17, 0x17, 0x17, 0x17, 0x17, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x17, 0x17, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-
-
-  };
-
-
-struct fshape
-	{
-
-		int w,h;
-		int n,c;
-		int flag;
-		int rowflag;
-		char far shp[260];
-					// TOTALSHAPE  =  20
-	} fshp[TOTALSHAPE];
-
+char far *screen = MK_FP(0xa000,0);
+char far *destin;
+					// 16 x 16 array
 
 void *buffer;
 void *image;
 
-char *pc[20];			// 20 Pointers for 20 Lines
-
-int leng=0;
-int totallength=0;
-int spaceleftb=0;
-int spaceleftt=0;
-int bottom=190;	// bottom let add X to it to get shape
-int line=0;
-int let=0;
-char p;
-int v=0;
-
-
-int nline=0;
-int pixelcount=0;
-int linecount=0;
-
 unsigned int imsize;
 int top = 290;
+int bottom = 35;
+int rbottom = 300;
+int lbottom = 145;
 int spx=100;            // Pixels
-int spy=190;
+int spy=100;
 int spritenum=0;
 int lp;
 int x,y,xy1,xy,fl,tm;
 int z=0;
-unsigned int offset = 0;
-int numspr=100;
-char far *scrn  = MK_FP(0xa000,0);
-char far *screen  = MK_FP(0xa000,0);
-char far *destin = MK_FP(0xa000,0);
-
-FILE *in, *out, *outdata;
-
-
-void initscreen(void)
-{
-
-
-
-	printf(" ");
-	destin = (char far *) farmalloc(64000l);
-
-//      printf("%p",destin);
-
-	if (destin == NULL)
-		{
-			 printf("Not enough memory to allocate screen buffer\n");
-			 //Close_Mode();
-			 exit(1);  /* terminate program if out of memory */
-
-		}
-		_fmemset(destin, 0, 64000);
-
-
-}
-
-
+int offset = 0;
+int numspr=30;
+int sprloc=16;
+int stars[30][30];
 
 void initarray(void)
 {
 
 
-	int c,sn,tempx,tempy,tempdir;
-
-	for (c=0 ; c<numspr; c++)
-	{
+	int c,sn,tempx,tempy;
 	randomize();
-	// offset=random((1000)+1);
-	PutImage(offset);
-	}
+
+	for (sn=0;sn<=3;sn++)
+	{
+		for (c=0 ; c<numspr; c++)
+		{
+		tempx=random(319);
+		tempy=random(169);
+		starsx[c]=tempx;
+		starsy[c]=tempy;
+		starsspeed[c]=random(6)+1;
+
+		PutImage(tempx, tempy);
+		}
+  }
 
 }
-
 
 
 void main(void)
 {
-	int i,xx,swav;
+	int i,direction=1,xx,swav;
 
 	Init_Mode();
-	fileread();
+	initarray();
+	do {
 
-	getch();
+
+
+	 } while (!kbhit());
+
+
+
 	Close_Mode();
+}
+
+
+void PutImage(int spx,int spy)
+{
+		  offset = (spy * 320) + spx;
+
+
+		  *(screen+offset)^=1;
 
 }
 
 
-int fileread(void)
+
+
+void Init_Mode(void)
+{
+	asm {
+		mov ax,0x13
+		int 0x10
+		 }
+}
+
+void Close_Mode()
 {
 
-	int s=0,i;
-	struct fshape *p;
-
-	if ((in = fopen("man.std", "rb"))
-		 == NULL)
-	{
-		fprintf(stderr, "Cannot open input file.\n");
-		return 1;
-
-	}
-
-	i=0;
-	for (s=0,p=&fshp[s];s<TOTALSHAPE && feof ;s++,p=&fshp[s],i=0)
-
-	while (i<256)
-		{
-	*(p->shp+i)=fgetc(in);
-  //      printf("%x",*(p->shp+i));
-	i++;
+	asm {
+		mov ax,0x03
+		int 0x10
 		}
 
-	fclose(out);
-
-	return 1;
-
 }
-
 
 
